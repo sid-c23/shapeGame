@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shape Game</title>
+  <style>
+    .circle {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+    }
+  </style>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+<body>
+  
+  <div id="app">
+    <ul class="list-group">
+      <a class="list-group-item" v-for="room in rooms" @click="setRoom(room)">{{room.id}}</a>
+    </ul>
+    <div class="circle" @click="changeColor" v-bind:style="{backgroundColor: currentRoom.color}"></div>
+  </div>
+
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script>
+    var socket = io();
+    var app = new Vue({
+      el: "#app",
+      created() {
+        axios.get('/api/rooms')
+          .then(res => {
+            this.rooms = res.data
+          })
+      },
+      data: {
+        rooms: [],
+        currentRoom: {}
+      },
+      methods: {
+        setRoom(room) {
+          socket.emit("leaveRoom", this.currentRoom)
+          this.currentRoom = room
+          socket.emit("joinedRoom", room)
+        },
+        bindColor(color) {
+          this.currentRoom.color = color
+        },
+        changeColor() {
+          switch(this.currentRoom.color) {
+            case "red": 
+              this.currentRoom.color = "blue";
+              break;
+            
+            case "blue": 
+              this.currentRoom.color = "green";
+              break;
+            
+            case "green": 
+              this.currentRoom.color = "red";
+              break;
+            
+          }
+          socket.emit('colorChanged', {id: this.currentRoom.id, color: this.currentRoom.color})
+        }
+      }
+    })
+    socket.on('colorChanged', (color) => {
+      app.bindColor(color)
+    })
+  </script>
+</body>
+</html>
